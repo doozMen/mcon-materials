@@ -60,11 +60,44 @@ class SuperStorageModel: ObservableObject {
   }
 
   /// Downloads a file, returns its data, and updates the download progress in ``downloads``.
-  private func downloadWithProgress(fileName: String, name: String, size: Int, offset: Int? = nil) async throws -> Data {
+  private func downloadWithProgress(fileName: String, name: String, size: Int, offset: Int? = nil)
+    async throws -> Data
+  {
     guard let url = URL(string: "http://localhost:8080/files/download?\(fileName)") else {
       throw "Could not create the URL."
     }
-    await addDownload(name: name)
+
+    let result: (downloadStream: URLSession.AsyncBytes, response: URLResponse)
+
+    if let offset = offset {
+      let urlRequest = URLRequest(url: url, offset: offset, length: size)
+      result = try await URLSession.shared.bytes(for: urlRequest, delegate: nil)
+
+      guard (result.response as? HTTPURLResponse)?.statusCode == 206 else {
+        throw "The server responded with an error."
+      }
+    } else {
+      result = try await URLSession.shared.bytes(from: url, delegate: nil)
+
+      guard (result.response as? HTTPURLResponse)?.statusCode == 200 else {
+        throw "The server responded with an error."
+      }
+    }
+
+    // here you are making the stream
+    var asyncDownloadIterator = result.downloadStream.makeAsyncIterator()
+
+    var accumulator = ByteAccumulator(name: name, size: size)
+
+    while await !stopDownloads, !accumulator.checkCompleted() {
+      while !accumulator.isBatchCompleted,
+        let byte = try await asyncDownloadIterator.next()
+      {
+        accumulator.append(byte)
+      }
+
+    }
+
     return Data()
   }
 
