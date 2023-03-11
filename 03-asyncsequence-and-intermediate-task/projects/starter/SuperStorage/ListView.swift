@@ -60,34 +60,43 @@ struct ListView: View {
       VStack {
         // The list of files available for download.
         List {
-          Section(content: {
-            if files.isEmpty {
-              ProgressView().padding()
-            }
-            ForEach(files) { file in
-              Button(action: {
-                selected = file
-              }, label: {
-                FileListItem(file: file)
-              })
-            }
-          }, header: {
-            Label(" SuperStorage", systemImage: "externaldrive.badge.icloud")
-              .font(.custom("SerreriaSobria", size: 27))
-              .foregroundColor(.accentColor)
-              .padding(.bottom, 20)
-          }, footer: {
-            Text(status)
-          })
+          Section(
+            content: {
+              if files.isEmpty {
+                ProgressView().padding()
+              }
+              ForEach(files) { file in
+                Button(
+                  action: {
+                    selected = file
+                  },
+                  label: {
+                    FileListItem(file: file)
+                  })
+              }
+            },
+            header: {
+              Label(" SuperStorage", systemImage: "externaldrive.badge.icloud")
+                .font(.custom("SerreriaSobria", size: 27))
+                .foregroundColor(.accentColor)
+                .padding(.bottom, 20)
+            },
+            footer: {
+              Text(status)
+            })
         }
         .listStyle(.insetGrouped)
         .animation(.easeOut(duration: 0.33), value: files)
       }
-      .alert("Error", isPresented: $isDisplayingError, actions: {
-        Button("Close", role: .cancel) { }
-      }, message: {
-        Text(lastErrorMessage)
-      })
+      .alert(
+        "Error", isPresented: $isDisplayingError,
+        actions: {
+          Button("Close", role: .cancel) {}
+        },
+        message: {
+          Text(lastErrorMessage)
+        }
+      )
       .task {
         guard files.isEmpty else { return }
 
