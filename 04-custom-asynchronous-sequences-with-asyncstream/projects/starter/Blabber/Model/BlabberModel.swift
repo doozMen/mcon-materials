@@ -54,6 +54,28 @@ class BlabberModel: ObservableObject {
   /// Does a countdown and sends the message.
   func countdown(to message: String) async throws {
     guard !message.isEmpty else { return }
+    var countdown = 3
+    let counter = AsyncStream<String> {
+      guard countdown >= 0 else { return nil }
+
+      do {
+        try await Task.sleep(for: .seconds(1))
+      } catch {
+        // The sleep task throws when it is cancelled, so we stop
+        // the stream simply by returning nil.
+        return nil
+      }
+      defer { countdown -= 1 }
+
+      if countdown == 0 {
+        return "🎉 " + message
+      } else {
+        return "\(countdown)..."
+      }
+    }
+    for await message in counter {
+      try await say(message)
+    }
   }
 
   /// Start live chat updates
@@ -84,6 +106,34 @@ class BlabberModel: ObservableObject {
 
   /// Reads the server chat stream and updates the data model.
   private func readMessages(stream: URLSession.AsyncBytes) async throws {
+    var iterator = stream.lines.makeAsyncIterator()
+
+    guard let first = try await iterator.next() else {
+      throw "No response from server"
+    }
+
+    guard
+      let data = first.data(using: .utf8),
+      let status = try? JSONDecoder()
+        .decode(ServerStatus.self, from: data)
+    else {
+      throw "Invalid response from server"
+    }
+    messages.append(
+      Message(
+        message: "\(status.activeUsers) active users"
+      )
+    )
+
+    for try await line in stream.lines {
+      if let data = line.data(using: .utf8),
+         let update = try? JSONDecoder().decode(Message.self, from: data) {
+        messages.append(update)
+      }
+    }
+
+
+
   }
 
   /// Sends the user's message to the chat server
