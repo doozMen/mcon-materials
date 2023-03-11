@@ -30,9 +30,9 @@
 /// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 /// THE SOFTWARE.
 
-import Foundation
-import CoreLocation
 import Combine
+import CoreLocation
+import Foundation
 import UIKit
 
 /// The app model that communicates with the server.
@@ -78,12 +78,30 @@ class BlabberModel: ObservableObject {
     }
   }
 
+  func observeAppStatus() async {
+    Task {
+      for await _ in NotificationCenter.default
+        .notifications(for: UIApplication.willResignActiveNotification)
+      {
+        try? await say("\(username) went away", isSystemMessage: true)
+      }
+    }
+
+    Task {
+      for await _ in NotificationCenter.default
+        .notifications(for: UIApplication.didBecomeActiveNotification)
+      {
+        try? await say("\(username) came back", isSystemMessage: true)
+      }
+    }
+  }
+
   /// Start live chat updates
   func chat() async throws {
     guard
       let query = username.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
       let url = URL(string: "http://localhost:8080/chat/room?\(query)")
-      else {
+    else {
       throw "Invalid username"
     }
 
@@ -94,18 +112,25 @@ class BlabberModel: ObservableObject {
 
     print("Start live updates")
 
-    try await withTaskCancellationHandler(operation: {
-      try await readMessages(stream: stream)
-    }, onCancel: {
-      print("End live updates")
-      Task { @MainActor in
-        messages = []
-      }
-    })
+    try await withTaskCancellationHandler(
+      operation: {
+        try await readMessages(stream: stream)
+      },
+      onCancel: {
+        print("End live updates")
+        Task { @MainActor in
+          messages = []
+        }
+      })
   }
 
   /// Reads the server chat stream and updates the data model.
   private func readMessages(stream: URLSession.AsyncBytes) async throws {
+    let notifications = Task {
+      await observeAppStatus()
+    }
+    defer { notifications.cancel() }
+
     var iterator = stream.lines.makeAsyncIterator()
 
     guard let first = try await iterator.next() else {
@@ -127,12 +152,11 @@ class BlabberModel: ObservableObject {
 
     for try await line in stream.lines {
       if let data = line.data(using: .utf8),
-         let update = try? JSONDecoder().decode(Message.self, from: data) {
+        let update = try? JSONDecoder().decode(Message.self, from: data)
+      {
         messages.append(update)
       }
     }
-
-
 
   }
 
@@ -161,4 +185,12 @@ class BlabberModel: ObservableObject {
     configuration.timeoutIntervalForRequest = .infinity
     return URLSession(configuration: configuration)
   }()
+}
+
+extension AsyncSequence {
+  func forEach(_ body: (Element) async throws -> Void) async throws {
+    for try await element in self {
+      try await body(element)
+    }
+  }
 }
