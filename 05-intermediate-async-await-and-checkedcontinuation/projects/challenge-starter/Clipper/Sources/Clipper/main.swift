@@ -31,6 +31,12 @@
 /// THE SOFTWARE.
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+
+import SwiftCommand
+
 // Makes the default session requests not time out.
 let liveURLSession: URLSession = {
   let configuration = URLSessionConfiguration.default
@@ -44,7 +50,7 @@ guard let username = CommandLine.arguments.dropFirst().first else {
   exit(1)
 }
 
-Task {
+Task<Void, Swift.Error> {
   let url = URL(string: "http://localhost:8080/cli/chat?\(username)")!
   do {
     // Loop over the server response lines and print them.
@@ -57,11 +63,12 @@ Task {
   }
 }
 
-Task {
+Task<Void, Swift.Error> {
   let url = URL(string: "http://localhost:8080/cli/say")!
   
   // Loop over the lines in the standard input and send them to the server.
-  for try await line in FileHandle.standardInput.bytes.lines {
+  let lines: SwiftCommand.AsyncLineSequence = FileHandle.standardInput.bytes.lines
+  for try await line in lines {
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     request.httpBody = "[\(username)] \(line)".data(using: .utf8)
