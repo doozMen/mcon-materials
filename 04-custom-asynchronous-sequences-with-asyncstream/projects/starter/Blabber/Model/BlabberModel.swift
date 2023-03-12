@@ -54,7 +54,13 @@ class BlabberModel: ObservableObject {
   func shareLocation() async throws {
     let location: CLLocation = try await withCheckedThrowingContinuation {
       [weak self] continuation in
-      self?.delegate = ChatLocationDelegate(manager: manager, continuation: continuation)
+
+      guard let self else {
+        continuation.resume(throwing: CancellationError())
+        return
+      }
+
+      delegate = ChatLocationDelegate(manager: manager, continuation: continuation)
       if manager.authorizationStatus == .authorizedWhenInUse {
         manager.startUpdatingLocation()
       }
@@ -63,6 +69,24 @@ class BlabberModel: ObservableObject {
     print(location.description)
     manager.stopUpdatingLocation()
     delegate = nil
+
+    let address: String = try await
+    withCheckedThrowingContinuation { continuation in
+      AddressEncoder.addressFor(location: location) { address, error in
+        switch (address, error) {
+          case (nil, let error?):
+            continuation.resume(throwing: error)
+          case (let address?, nil):
+            continuation.resume(returning: address)
+          case (nil, nil):
+            continuation.resume(throwing: "Address encoding failed")
+          case let (address?, error?):
+            continuation.resume(returning: address)
+            print(error)
+        }
+      }
+    }
+    try await say("📍 \(address)")
   }
 
   /// Does a countdown and sends the message.
