@@ -54,8 +54,15 @@ class BlabberModel: ObservableObject {
   func shareLocation() async throws {
     let location: CLLocation = try await withCheckedThrowingContinuation {
       [weak self] continuation in
-
+      self?.delegate = ChatLocationDelegate(manager: manager, continuation: continuation)
+      if manager.authorizationStatus == .authorizedWhenInUse {
+        manager.startUpdatingLocation()
+      }
     }
+
+    print(location.description)
+    manager.stopUpdatingLocation()
+    delegate = nil
   }
 
   /// Does a countdown and sends the message.
