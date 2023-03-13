@@ -12,10 +12,10 @@
     {
       "identity" : "swiftcommand",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Zollerboy1/SwiftCommand.git",
+      "location" : "https://github.com/doozMen/SwiftCommand.git",
       "state" : {
-        "revision" : "b4ea08c1db90532e62e1d2ea44d1c7b630b45350",
-        "version" : "1.1.2"
+        "branch" : "main",
+        "revision" : "2d41bec414d52f9e2ad16aa57671724555984bb6"
       }
     }
   ],
