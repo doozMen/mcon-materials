@@ -67,8 +67,7 @@ Task<Void, Swift.Error> {
   let url = URL(string: "http://localhost:8080/cli/say")!
   
   // Loop over the lines in the standard input and send them to the server.
-  let lines: SwiftCommand.AsyncLineSequence = FileHandle.standardInput.bytes.lines
-  for try await line in lines {
+  for try await line in FileHandle.standardInput.bytes.lines {
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     request.httpBody = "[\(username)] \(line)".data(using: .utf8)

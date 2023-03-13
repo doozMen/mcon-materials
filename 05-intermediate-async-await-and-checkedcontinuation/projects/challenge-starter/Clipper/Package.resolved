@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/doozMen/SwiftCommand.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "2d41bec414d52f9e2ad16aa57671724555984bb6"
+        "branch" : "filehandle+async-public",
+        "revision" : "c66ced196e37d653f5d7865d673bc8b26f7790a8"
       }
     }
   ],
