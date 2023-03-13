@@ -73,7 +73,7 @@ Task<Void, Swift.Error> {
     request.httpBody = "[\(username)] \(line)".data(using: .utf8)
 
     do {
-      _ = try await URLSession.shared.data(for: request, delegate: nil)
+      _ = try await URLSession.shared.data(for: request)
     } catch {
       print(error.localizedDescription)
       exit(1)
